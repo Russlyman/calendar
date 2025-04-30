@@ -9,6 +9,35 @@ function App() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedEvents, setSelectedEvents] = useState<EventType[]>([]);
 
+  const [title, setTitle] = useState<string>('');
+  const [description, setDescription] = useState<string>('');
+
+  const createEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const newEvent = {
+      title,
+      description: description.length === 0 ? null : description,
+      date: selectedDate.toLocaleDateString('en-CA'),
+    };
+
+    const response = await fetch(`http://localhost:5281/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newEvent),
+    });
+
+    // Check response
+    if (!response.ok) {
+      console.error('Failed to add');
+      return;
+    }
+
+    const responseJson = await response.json();
+
+    setSelectedEvents(prev => [...prev, responseJson]);
+  };
+
   const deleteEvent = async (eventId: number) => {
     const response = await fetch(`http://localhost:5281/events/${eventId}`, {
       method: 'DELETE',
@@ -51,11 +80,11 @@ function App() {
   }, [selectedDate]);
 
   const events = selectedEvents.map(e => (
-    <div key={e.id}>
-      <p>{e.title}</p>
-      <p>{e.description}</p>
+    <div key={e.id} className="bg-gray-100 flex justify-between p-5 rounded-xl flex-col gap-3">
+      <h2 className="text-xl font-bold">{e.title}</h2>
+      <p className='wrap-break-word'>{e.description}</p>
       <button
-        className="px-5 py-3 bg-gray-400"
+        className="px-5 py-3 bg-gray-400 rounded-xl self-start"
         onClick={() => deleteEvent(e.id)}
       >
         Delete
@@ -64,19 +93,54 @@ function App() {
   ));
 
   return (
-    <>
-      <DayPicker
-        animate
-        required
-        mode="single"
-        selected={selectedDate}
-        onSelect={setSelectedDate}
-      />
-      <div>
-        <p>Selected {selectedDate.toLocaleDateString()}</p>
-        <div>{events.length > 0 ? events : <p>No events!</p>}</div>
-      </div>
-    </>
+    <main className="flex justify-center">
+      <section className="flex flex-col gap-5 max-w-4xl items-center w-full m-5">
+        <DayPicker
+          animate
+          required
+          mode="single"
+          selected={selectedDate}
+          onSelect={setSelectedDate}
+        />
+        <div className="flex gap-5 flex-col w-full">
+          <p className="text-center">
+            Selected {selectedDate.toLocaleDateString()}
+          </p>
+          <form className="flex flex-col gap-5" onSubmit={createEvent}>
+            <div className="flex flex-col">
+              <label htmlFor="title">Title</label>
+              <input
+                type="text"
+                id="title"
+                className="border rounded-xl p-3"
+                value={title}
+                onChange={e => setTitle(e.target.value)}
+                required
+              />
+            </div>
+            <div className="flex flex-col">
+              <label htmlFor="description">Description</label>
+              <textarea
+                id="description"
+                className="border rounded-xl p-3"
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+              ></textarea>
+            </div>
+            <button className="bg-gray-400 px-5 py-3 self-start rounded-xl">
+              Submit
+            </button>
+          </form>
+          <div className="flex flex-col gap-5">
+            {events.length > 0 ? (
+              events
+            ) : (
+              <p className="text-center text-4xl font-bold">No events!</p>
+            )}
+          </div>
+        </div>
+      </section>
+    </main>
   );
 }
 
