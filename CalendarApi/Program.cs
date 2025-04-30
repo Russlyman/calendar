@@ -29,7 +29,8 @@ app.UseHttpsRedirection();
 app.MapPost("/events", async Task<Results<BadRequest<string>, Created<Event>>> (CalendarContext calendarContext, EventCreateRequestDto eventCreateRequestDto) =>
 {
     // Reject empty titles
-    if (string.IsNullOrWhiteSpace(eventCreateRequestDto.Title)) {
+    if (string.IsNullOrWhiteSpace(eventCreateRequestDto.Title))
+    {
         return TypedResults.BadRequest("Title cannot be null, empty or whitespace.");
     }
 
@@ -48,6 +49,30 @@ app.MapPost("/events", async Task<Results<BadRequest<string>, Created<Event>>> (
     // ACK: The location of the new resource is returned in Location header but doesn't exist
     // as we do not have a get by id method for the MVP.
     return TypedResults.Created($"/events/{newEvent.Id}", newEvent);
+});
+
+// Update Event
+app.MapPut("/events/{eventId}", async Task<Results<BadRequest<string>, Ok<Event>, NotFound<string>>> (int eventId, CalendarContext calendarContext, EventUpdateRequestDto eventUpdateRequestDto) =>
+{
+    var eventObj = await calendarContext.Events.FindAsync(eventId);
+
+    // Reject if event doesn't exist.
+    if (eventObj is null) {
+        return TypedResults.NotFound("Could not find event");
+    }
+
+    // Reject empty titles
+    if (string.IsNullOrWhiteSpace(eventUpdateRequestDto.Title))
+    {
+        return TypedResults.BadRequest("Title cannot be null, empty or whitespace.");
+    }
+
+    eventObj.Title = eventUpdateRequestDto.Title;
+    eventObj.Description = eventUpdateRequestDto.Description;
+
+    await calendarContext.SaveChangesAsync();
+
+    return TypedResults.Ok(eventObj);
 });
 
 app.Run();
