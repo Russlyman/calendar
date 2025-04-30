@@ -7,7 +7,9 @@ import { EventType } from './types/EventType';
 
 function App() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [selectedMonth, setSelectedMonth] = useState<Date>(new Date());
   const [selectedEvents, setSelectedEvents] = useState<EventType[]>([]);
+  const [monthEvents, setMonthEvents] = useState<Date[]>([]);
 
   const [title, setTitle] = useState<string>('');
   const [description, setDescription] = useState<string>('');
@@ -36,8 +38,10 @@ function App() {
     const responseJson = await response.json();
 
     setSelectedEvents(prev => [...prev, responseJson]);
+    setMonthEvents(prev => [...prev, selectedDate]);
   };
 
+  // Handler for deleting an event.
   const deleteEvent = async (eventId: number) => {
     const response = await fetch(`http://localhost:5281/events/${eventId}`, {
       method: 'DELETE',
@@ -49,9 +53,25 @@ function App() {
       return;
     }
 
-    setSelectedEvents(prev => prev.filter(e => e.id !== eventId));
+    // FIX: Dates do not disappear from preview once all events have been removed.
+    // I should probably use a Set instead to record dates.
+
+    // const eventToDelete = selectedEvents.find(e => e.id === eventId);
+    // const eventsLeftOnDay = selectedEvents.filter(
+    //   e => e.date === eventToDelete?.date
+    // );
+
+    // if (eventsLeftOnDay.length === 1) {
+    //   // setMonthEvents(prev => prev.filter(e => e !== eventToDelete?.date));
+    //   console.log(
+    //     monthEvents.filter(e => e.getTime() !== eventToDelete?.date.getTime())
+    //   );
+    // }
+
+    // setSelectedEvents(prev => prev.filter(e => e.id !== eventId));
   };
 
+  // Get events for the selected day.
   useEffect(() => {
     const getEvents = async () => {
       // ACK: toIsoString will break because it forces UTC timezone,
@@ -79,10 +99,41 @@ function App() {
     getEvents();
   }, [selectedDate]);
 
+  // Gets days that have events on them.
+  useEffect(() => {
+    const getMonth = async () => {
+      // YYYY-MM-DD
+      const date = selectedMonth.toLocaleDateString('en-CA').split('-');
+
+      const response = await fetch(
+        `http://localhost:5281/events?year=${date[0]}&month=${date[1]}`
+      );
+
+      // Check response
+      if (!response.ok) {
+        console.error('Failed to get');
+        return;
+      }
+
+      const responseJson = await response.json();
+
+      const responseFixDate: Date[] = responseJson.map(
+        (d: string) => new Date(d)
+      );
+
+      setMonthEvents(responseFixDate);
+    };
+
+    getMonth();
+  }, [selectedMonth]);
+
   const events = selectedEvents.map(e => (
-    <div key={e.id} className="bg-gray-100 flex justify-between p-5 rounded-xl flex-col gap-3">
+    <div
+      key={e.id}
+      className="bg-gray-100 flex justify-between p-5 rounded-xl flex-col gap-3"
+    >
       <h2 className="text-xl font-bold">{e.title}</h2>
-      <p className='wrap-break-word'>{e.description}</p>
+      <p className="wrap-break-word">{e.description}</p>
       <button
         className="px-5 py-3 bg-gray-400 rounded-xl self-start"
         onClick={() => deleteEvent(e.id)}
@@ -101,6 +152,13 @@ function App() {
           mode="single"
           selected={selectedDate}
           onSelect={setSelectedDate}
+          month={selectedMonth}
+          onMonthChange={setSelectedMonth}
+          modifiers={{ eventDays: monthEvents }}
+          modifiersClassNames={{
+            eventDays: 'text-red-500',
+            today: 'text-black',
+          }}
         />
         <div className="flex gap-5 flex-col w-full">
           <p className="text-center">
