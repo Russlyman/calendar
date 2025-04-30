@@ -37,7 +37,10 @@ function App() {
 
     const responseJson = await response.json();
 
-    setSelectedEvents(prev => [...prev, responseJson]);
+    setSelectedEvents(prev => [
+      ...prev,
+      { ...responseJson, date: new Date(responseJson.date) },
+    ]);
     setMonthEvents(prev => [...prev, selectedDate]);
   };
 
@@ -53,22 +56,17 @@ function App() {
       return;
     }
 
-    // FIX: Dates do not disappear from preview once all events have been removed.
-    // I should probably use a Set instead to record dates.
+    // FIX: I should probably use a Set instead to record dates.
 
-    // const eventToDelete = selectedEvents.find(e => e.id === eventId);
-    // const eventsLeftOnDay = selectedEvents.filter(
-    //   e => e.date === eventToDelete?.date
-    // );
+    const eventToDelete = selectedEvents.find(e => e.id === eventId);
 
-    // if (eventsLeftOnDay.length === 1) {
-    //   // setMonthEvents(prev => prev.filter(e => e !== eventToDelete?.date));
-    //   console.log(
-    //     monthEvents.filter(e => e.getTime() !== eventToDelete?.date.getTime())
-    //   );
-    // }
+    if (selectedEvents.length === 1) {
+      setMonthEvents(
+        monthEvents.filter(e => e.getDate() !== eventToDelete?.date.getDate())
+      );
+    }
 
-    // setSelectedEvents(prev => prev.filter(e => e.id !== eventId));
+    setSelectedEvents(prev => prev.filter(e => e.id !== eventId));
   };
 
   // Get events for the selected day.
