@@ -75,4 +75,19 @@ app.MapPut("/events/{eventId}", async Task<Results<BadRequest<string>, Ok<Event>
     return TypedResults.Ok(eventObj);
 });
 
+// Delete Event
+app.MapDelete("/events/{eventId}", async Task<Results<NotFound<string>, Ok>>(int eventId, CalendarContext calendarContext) => {
+    var eventObj = await calendarContext.Events.FindAsync(eventId);
+
+    // Reject if event doesn't exist.
+    if (eventObj is null) {
+        return TypedResults.NotFound("Could not find event");
+    }
+
+    calendarContext.Remove(eventObj);
+    await calendarContext.SaveChangesAsync();
+
+    return TypedResults.Ok();
+});
+
 app.Run();
