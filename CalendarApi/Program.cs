@@ -51,13 +51,35 @@ app.MapPost("/events", async Task<Results<BadRequest<string>, Created<Event>>> (
     return TypedResults.Created($"/events/{newEvent.Id}", newEvent);
 });
 
+// Read Event
+app.MapGet("/events", async Task<Results<Ok<List<Event>>, BadRequest<string>, Ok<List<DateOnly>>>> (DateOnly? date, int? month, int? year, CalendarContext calendarContext) =>
+{
+    // Returns Events on a date
+    if (date is not null)
+    {
+        var eventList = await calendarContext.Events.Where(e => e.Date == date).ToListAsync();
+        return TypedResults.Ok(eventList);
+    }
+    // Returns list of days where events fall in a month.
+    else if (month is not null && year is not null) {
+        var eventList = await calendarContext.Events.Where(e => e.Date.Month == month && e.Date.Year == year ).Select(e => e.Date).Distinct().ToListAsync();
+        return TypedResults.Ok(eventList);
+    }
+    // Catch for invalid requests.
+    else
+    {
+        return TypedResults.BadRequest("You must query by either a date or month.");
+    }
+});
+
 // Update Event
 app.MapPut("/events/{eventId}", async Task<Results<BadRequest<string>, Ok<Event>, NotFound<string>>> (int eventId, CalendarContext calendarContext, EventUpdateRequestDto eventUpdateRequestDto) =>
 {
     var eventObj = await calendarContext.Events.FindAsync(eventId);
 
     // Reject if event doesn't exist.
-    if (eventObj is null) {
+    if (eventObj is null)
+    {
         return TypedResults.NotFound("Could not find event");
     }
 
@@ -76,11 +98,13 @@ app.MapPut("/events/{eventId}", async Task<Results<BadRequest<string>, Ok<Event>
 });
 
 // Delete Event
-app.MapDelete("/events/{eventId}", async Task<Results<NotFound<string>, Ok>>(int eventId, CalendarContext calendarContext) => {
+app.MapDelete("/events/{eventId}", async Task<Results<NotFound<string>, Ok>> (int eventId, CalendarContext calendarContext) =>
+{
     var eventObj = await calendarContext.Events.FindAsync(eventId);
 
     // Reject if event doesn't exist.
-    if (eventObj is null) {
+    if (eventObj is null)
+    {
         return TypedResults.NotFound("Could not find event");
     }
 
