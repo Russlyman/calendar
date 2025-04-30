@@ -485,3 +485,5 @@ $RECYCLE.BIN/
 
 # CalendarApi Items
 calendar.db
+calendar.db-shm
+calendar.db-wal

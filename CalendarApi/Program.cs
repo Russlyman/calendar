@@ -1,4 +1,7 @@
 using CalendarApi;
+using CalendarApi.Dtos;
+using CalendarApi.Models;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Scalar.AspNetCore;
 
@@ -22,6 +25,29 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/", () => "Hello World!");
+// Create Event
+app.MapPost("/events", async Task<Results<BadRequest<string>, Created<Event>>> (CalendarContext calendarContext, EventCreateRequestDto eventCreateRequestDto) =>
+{
+    // Reject empty titles
+    if (string.IsNullOrWhiteSpace(eventCreateRequestDto.Title)) {
+        return TypedResults.BadRequest("Title cannot be null, empty or whitespace.");
+    }
+
+    // Map DTO into Entity.
+    var newEvent = new Event
+    {
+        Title = eventCreateRequestDto.Title,
+        Description = eventCreateRequestDto.Description,
+        Date = eventCreateRequestDto.Date
+    };
+
+    // Track and save.
+    calendarContext.Events.Add(newEvent);
+    await calendarContext.SaveChangesAsync();
+
+    // ACK: The location of the new resource is returned in Location header but doesn't exist
+    // as we do not have a get by id method for the MVP.
+    return TypedResults.Created($"/events/{newEvent.Id}", newEvent);
+});
 
 app.Run();
