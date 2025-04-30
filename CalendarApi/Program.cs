@@ -7,6 +7,15 @@ using Scalar.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Add CORS
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll", policy =>
+    {
+        policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+    });
+});
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
@@ -15,6 +24,9 @@ builder.Services.AddOpenApi();
 builder.Services.AddDbContext<CalendarContext>(options => options.UseSqlite(builder.Configuration.GetConnectionString("CalendarContext")));
 
 var app = builder.Build();
+
+// Use CORS
+app.UseCors("AllowAll");
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
@@ -61,8 +73,9 @@ app.MapGet("/events", async Task<Results<Ok<List<Event>>, BadRequest<string>, Ok
         return TypedResults.Ok(eventList);
     }
     // Returns list of days where events fall in a month.
-    else if (month is not null && year is not null) {
-        var eventList = await calendarContext.Events.Where(e => e.Date.Month == month && e.Date.Year == year ).Select(e => e.Date).Distinct().ToListAsync();
+    else if (month is not null && year is not null)
+    {
+        var eventList = await calendarContext.Events.Where(e => e.Date.Month == month && e.Date.Year == year).Select(e => e.Date).Distinct().ToListAsync();
         return TypedResults.Ok(eventList);
     }
     // Catch for invalid requests.
